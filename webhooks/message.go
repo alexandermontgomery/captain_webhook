@@ -18,20 +18,18 @@ func parse(data []byte) interface{} {
     return obj
 }
 
-func NewMessage(webhook_type string, data []byte) *Message{
+func NewMessage(data []byte, obj *ObjectFormat) *Message{
 	msg := new(Message)
 	jsonObj := parse(data)
 	msg.jsonObj = jsonObj.(map[string]interface{})
-	msg.webhookType = webhook_type
-	msg.obj = NewObject(webhook_type)
+	msg.obj = obj
 	msg.Translate()
 	return msg
 }
 
-func NewChildMessage(parent *Message, data interface{}, childObj *Object) *Message{
+func NewChildMessage(parent *Message, data interface{}, childObj *ObjectFormat) *Message{
 	child := new(Message)
 	child.jsonObj = data.(map[string]interface{})
-	child.webhookType = parent.webhookType
 	child.obj = childObj
 	child.Translate()
 	parent.children = append(parent.children, child)
@@ -41,9 +39,8 @@ func NewChildMessage(parent *Message, data interface{}, childObj *Object) *Messa
 
 type Message struct {
 	jsonObj map[string]interface{}
-	webhookType string
 	translatedStr string
-	obj *Object
+	obj *ObjectFormat
 	children []*Message
 	parent *Message
 }

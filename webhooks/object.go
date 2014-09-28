@@ -1,45 +1,73 @@
 package webhooks
 
-type Object struct {
-	fields map[string]interface{}
-	message string
+import(
+    "gopkg.in/mgo.v2/bson"
+    "log"
+)
+
+type ObjectFormat struct {
+	Id bson.ObjectId `bson:"_id,omitempty"`
+	Message string `bson:"message,omitempty"`
+	Fields map[string]*ObjectFormat `bson:"fields,omitempty"`
+	Placeholder string `bson:"placeholder,omitempty"`
 }
 
-func NewObject(webhook_type string) *Object{
-	newFields := new(Object)
-	newFields.LoadObject(webhook_type)
-	return newFields
-}
-
-func (o *Object) LoadObject(webhook_type string){
-	o.message = `New order worth $$$Subtotal_price$$`
-	o.fields = map[string]interface{}{
-		"line_items" : Object{
-			map[string]interface{}{
-				"quantity" : "$$Quantity$$",
-				"name" : "$$Name$$",
+func GetSampleObjectFormat() *ObjectFormat{
+	return &ObjectFormat{
+		Id : bson.NewObjectId(),
+		Message : `New order worth $$$Subtotal_price$$`,
+		Fields : map[string]*ObjectFormat{
+			"subtotal_price" : &ObjectFormat{
+				Message : "",
+				Fields: nil,
+				Placeholder: "$$Subtotal_price$$",
 			},
-			`- $$Quantity$$ $$Name$$`,
+			"line_items" : &ObjectFormat{
+				Message : `- $$Quantity$$ $$Name$$`,
+				Fields : map[string]*ObjectFormat{
+					"quantity" : &ObjectFormat{
+						Message : "",
+						Fields: nil,
+						Placeholder: "$$Quantity$$",
+					},
+					"name" : &ObjectFormat{
+						Message : "",
+						Fields: nil,
+						Placeholder : "$$Name$$",
+					},
+				},
+				Placeholder : "",
+			},
 		},
-		"subtotal_price" : "$$Subtotal_price$$",
+		Placeholder: "",
 	}
 }
 
-func (o *Object) getMessage() string{
-	return o.message
+func GetObjectFormat(dbConn *mgo.Database, formatId string) *ObjectFormat{
+	c := dbConn.C("object_format")
+	res := new(ObjectFormat)
+	err := c.FindId(bson.ObjectIdHex(formatId)).One(&res)
+	if(err != nil){
+		log.Printf("%+v", err)
+	}
+	return res
 }
 
-func (o *Object) FieldExists(fieldName string) bool{
-	_, exists := o.fields[fieldName]
+func (o *ObjectFormat) getMessage() string{
+	return o.Message
+}
+
+func (o *ObjectFormat) FieldExists(fieldName string) bool{
+	_, exists := o.Fields[fieldName]
 	return exists
 }
 
-func (o *Object) getFieldValue(fieldName string) string{
-	val, _ := o.fields[fieldName]
-	return val.(string)
+func (o *ObjectFormat) getFieldValue(fieldName string) string{
+	val := o.Fields[fieldName].Placeholder
+	return val
 }
 
-func (o *Object) getChildObj(child string) *Object{
-	childObj := o.fields[child].(Object)
-	return &childObj
+func (o *ObjectFormat) getChildObj(child string) *ObjectFormat{
+	childObj := o.Fields[child]
+	return childObj
 }
