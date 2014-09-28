@@ -43,8 +43,8 @@ func GetSampleObjectFormat() *ObjectFormat{
 	}
 }
 
-func GetObjectFormat(dbConn *mgo.Database, formatId string) *ObjectFormat{
-	c := dbConn.C("object_format")
+func GetObjectFormat(ctx *Context, formatId string) *ObjectFormat{
+	c := ctx.DB.C("object_format")
 	res := new(ObjectFormat)
 	err := c.FindId(bson.ObjectIdHex(formatId)).One(&res)
 	if(err != nil){
