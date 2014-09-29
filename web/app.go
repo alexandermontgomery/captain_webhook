@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"github.com/gorilla/mux"
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	"log"
 	"os"
 )
@@ -34,8 +35,9 @@ func main() {
 	cwd, _ := os.Getwd()
 	log.Printf("Current Working Directory: %s", cwd)
 	router := mux.NewRouter()
-	router.Handle("/", MiddlewareHandler(index)).Methods("GET")
-  	router.Handle("/webhook/{id}", MiddlewareHandler(webhookHandle)).Methods("POST")
+	router.Handle("/", MiddlewareHandler(indexHandle)).Methods("GET")
+  	router.Handle("/webhook/{id}", MiddlewareHandler(webhookHandle)).Methods("POST")  	
+  	router.Handle("/configs/list", MiddlewareHandler(configListHandle)).Methods("GET")
   	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir(homeDir + "/static/")))).Methods("GET")
 
 	http.Handle("/", router)
@@ -46,7 +48,7 @@ func main() {
 
 func ensureIndices(conn *mgo.Database) (err error){
 	index := mgo.Index{
-	    Key: []string{"config_id"},
+	    Key: []string{"transformer_id"},
 	    Unique: false,
 	    DropDups: false,
 	    Background: true, // See notes.
@@ -77,8 +79,21 @@ func (mh MiddlewareHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 }
 
 // PAGE CALLBACKS
-func index(w http.ResponseWriter, req *http.Request, ctx *webhooks.Context) (err error) {
+func indexHandle(w http.ResponseWriter, req *http.Request, ctx *webhooks.Context) (err error) {
 	view.RenderPage(w, "home", map[string]interface{}{"a" : 123, "b" : "Test String"})
+	var a webhooks.Transformer
+	a = webhooks.Transformer{
+		bson.NewObjectId(),
+		"Shopify",
+		bson.ObjectIdHex("54274f086807a32854000001"),
+		nil,
+	}
+	ctx.DB.C("transformer").Insert(a)
+	return
+}
+
+func configListHandle(w http.ResponseWriter, req *http.Request, ctx *webhooks.Context) (err error) {
+	view.RenderPage(w, "webhook_edit", nil)
 	return
 }
 
@@ -90,7 +105,11 @@ func webhookHandle(w http.ResponseWriter, req *http.Request, ctx *webhooks.Conte
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(req.Body)
 
-	obj := webhooks.GetObjectFormat(ctx, id)
+	transformer, err := webhooks.LoadTransformer(ctx, id)
+	if err != nil {
+		return err
+	}
+	obj := transformer.ObjectFormat
 	webhooks.LogMessage(ctx, buf.Bytes(), id)
 	msg := webhooks.NewMessage(buf.Bytes(), obj)
     go webhooks.Publish(msg)
