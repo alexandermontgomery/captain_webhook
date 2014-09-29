@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"strings"
-	"strconv"
+    "text/template"
+    "bytes"
 )
 
 func parse(data []byte) interface{} {
@@ -46,7 +47,7 @@ type Message struct {
 }
 
 func (msg *Message) Translate() {
-	msg.translatedStr = msg.obj.getMessage()
+    vars := make(map[string]interface{})    
     for k,v := range msg.jsonObj {
     	inter, isInter := v.([]interface{})
 
@@ -56,27 +57,28 @@ func (msg *Message) Translate() {
 
     	if(isInter){
     		childObj := msg.obj.getChildObj(k)
+            var strArr []string
     		for _, u := range inter {
 	    		child := NewChildMessage(msg, u, childObj)
-    			s := []string{msg.translatedStr, child.translatedStr}
-    			msg.translatedStr = strings.Join(s, `\n`)
-	        }
-    	}
-    	var strValue string
+    			strArr = append(strArr, child.translatedStr)
+	        }    
+            log.Printf("%+v", strArr)        
+            vars[msg.obj.getFieldPlaceholder(k)] = strings.Join(strArr, `\n`)
 
-    	switch vv := v.(type){
-    		case string:
-    			strValue = vv    			
-    		case int:
-    			strValue = strconv.Itoa(v.(int))
-    		case float64:
-    			strValue = strconv.FormatFloat(vv, 'f', 2, 64)
-    		case bool:
-    			strValue = strconv.FormatBool(vv)
-
-    	}
-    	if(len(strValue) > 0){
-    		msg.translatedStr = strings.Replace(msg.translatedStr, msg.obj.getFieldValue(k), strValue, -1)   	
-    	}
+    	} else{
+            vars[msg.obj.getFieldPlaceholder(k)] = v
+        }    	
     }
+
+    var translatedStr bytes.Buffer
+
+    t, err := template.New("").Parse(msg.obj.getMessage())
+    if err != nil {
+        log.Printf("Error translating message: %s", err)
+    }
+    execErr := t.Execute(&translatedStr, vars);
+    if execErr != nil {
+        log.Printf("Error translating message: %s", err)
+    }
+    msg.translatedStr = string(translatedStr.Bytes())
 }

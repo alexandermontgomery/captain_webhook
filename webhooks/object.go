@@ -43,10 +43,10 @@ func GetSampleObjectFormat() *ObjectFormat{
 	}
 }
 
-func GetObjectFormat(ctx *Context, formatId string) *ObjectFormat{
+func GetObjectFormat(ctx *Context, configId string) *ObjectFormat{
 	c := ctx.DB.C("object_format")
 	res := new(ObjectFormat)
-	err := c.FindId(bson.ObjectIdHex(formatId)).One(&res)
+	err := c.FindId(bson.ObjectIdHex(configId)).One(&res)
 	if(err != nil){
 		log.Printf("%+v", err)
 	}
@@ -62,7 +62,7 @@ func (o *ObjectFormat) FieldExists(fieldName string) bool{
 	return exists
 }
 
-func (o *ObjectFormat) getFieldValue(fieldName string) string{
+func (o *ObjectFormat) getFieldPlaceholder(fieldName string) string{
 	val := o.Fields[fieldName].Placeholder
 	return val
 }
