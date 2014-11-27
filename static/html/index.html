@@ -1,0 +1,43 @@
+<html ng-app="captainWebhookApp">
+	<head>		
+		<script type="text/javascript" src="/js/angular.min.js"></script>
+		<script type="text/javascript" src="/js/angular-route.min.js"></script>
+		<script type="text/javascript" src="/js/angular-animate.min.js"></script>
+		<script type="text/javascript" src="/js/ui-bootstrap.min.js"></script>		
+		<script type="text/javascript" src="/js/captain_webhook.js"></script>
+		<script type="text/javascript" src="/js/captain_webhook_services.js"></script>
+		<link rel="stylesheet" href="/css/bootstrap.min.css">
+		<link rel="stylesheet" href="/css/bootstrap-theme.min.css">
+		<link rel="stylesheet" href="/css/style.css">
+		<base href="/">
+	</head>
+	<body>
+		<div id="page" ng-controller="captainWebhook">
+			<div id="header" class="navbar navbar-fixed-top navbar-inverse">
+				<div class="container">
+					<div class="navbar-left">
+						<a href="#" class="navbar-brand">Captain Webhook</a>
+						<div class="btn-group" dropdown is-open="status.isopen">
+					      <button type="button" class="btn btn-navbar dropdown-toggle" ng-disabled="disabled">
+					        {{activeTransformerName()}} <span class="caret"></span>
+					      </button>
+					      <ul class="dropdown-menu" role="menu">
+					        <li ng:repeat="transformer in transformers.transformers">
+					        	<a href="/transformer/{{transformer._id}}">{{transformer.name}}</a></li>
+					      </ul>
+					    </div>
+					</div>
+				</div>
+			</div>	
+	<!-- 		<div class="well container-fluid">
+				[[.Content]]
+			</div> -->
+			<div class="well container-fluid">
+				<div ng-view class="view-animate"></div>
+			</div>
+			<div id="footer">
+
+			</div>
+		</div>
+	</body>
+</html>
