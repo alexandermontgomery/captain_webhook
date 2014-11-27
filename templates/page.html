@@ -1,24 +1,43 @@
 <html ng-app="captainWebhookApp">
 	<head>		
 		<script type="text/javascript" src="/static/js/angular.min.js"></script>
-		<script type="text/javascript" src="/static/js/ui-bootstrap.min.js"></script>
+		<script type="text/javascript" src="/static/js/angular-route.min.js"></script>
+		<script type="text/javascript" src="/static/js/angular-animate.min.js"></script>
+		<script type="text/javascript" src="/static/js/ui-bootstrap.min.js"></script>		
 		<script type="text/javascript" src="/static/js/captain_webhook.js"></script>
+		<script type="text/javascript" src="/static/js/captain_webhook_services.js"></script>
 		<link rel="stylesheet" href="/static/css/bootstrap.min.css">
 		<link rel="stylesheet" href="/static/css/bootstrap-theme.min.css">
+		<link rel="stylesheet" href="/static/css/style.css">
+		<base href="/app">
 	</head>
 	<body>
-		<div id="header" class="navbar navbar-nav navbar-fixed-top navbar-inverse" ng-controller="captainWebhookHeader">
-			<div class="container">
-				<div class="navbar-left">
-					<a href="#" class="navbar-brand">Captain Webhook</a>
+		<div id="page" ng-controller="captainWebhook">
+			<div id="header" class="navbar navbar-fixed-top navbar-inverse">
+				<div class="container">
+					<div class="navbar-left">
+						<a href="#" class="navbar-brand">Captain Webhook</a>
+						<div class="btn-group" dropdown is-open="status.isopen">
+					      <button type="button" class="btn btn-navbar dropdown-toggle" ng-disabled="disabled">
+					        {{activeTransformerName()}} <span class="caret"></span>
+					      </button>
+					      <ul class="dropdown-menu" role="menu">
+					        <li ng:repeat="transformer in transformers.transformers">
+					        	<a href="/app/transformer/{{transformer._id}}">{{transformer.name}}</a></li>
+					      </ul>
+					    </div>
+					</div>
 				</div>
+			</div>	
+	<!-- 		<div class="well container-fluid">
+				[[.Content]]
+			</div> -->
+			<div class="well container-fluid">
+				<div ng-view class="view-animate"></div>
 			</div>
-		</div>
-		<div id="content" class="container-fluid">
-			{{.Content}}
-		</div>
-		<div id="footer">
+			<div id="footer">
 
+			</div>
 		</div>
 	</body>
 </html>
