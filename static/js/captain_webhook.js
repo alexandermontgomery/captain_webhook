@@ -1,4 +1,4 @@
-var captainWebhookApp = angular.module('captainWebhookApp', ['ui.bootstrap', 'ngRoute'])
+var captainWebhookApp = angular.module('captainWebhookApp', ['ui.bootstrap', 'ngRoute', 'ui.sortable'])
 	.config(['$routeProvider', '$locationProvider', 
 		function($routeProvider, $locationProvider){
 			$routeProvider
@@ -18,7 +18,7 @@ captainWebhookApp.controller('captainWebhook', ['$scope', 'Transformers', '$rout
 
 	$scope.activeTransformerName = function(){
 		if(angular.isDefined($scope.transformers.activeTransformer)){
-			return $scope.transformers.activeTransformer.name;
+			return $scope.transformers.activeTransformer.Name;
 		}
 		return 'Configuration';
 	}
@@ -28,7 +28,9 @@ captainWebhookApp.controller('captainWebhookTransformerEdit', ['$routeParams', '
 	$scope.transformer;
 	$scope.messages;	
 	$scope.transformerId = $routeParams.id;
-	$scope.activeMessageIndex;
+	$scope.activeMessage;
+	$scope.activeRelId;
+	$scope.sortableRelIdList;
 
 	Transformers.getOne($scope.transformerId, function(transformer){
 		$scope.transformer = transformer;
@@ -37,10 +39,24 @@ captainWebhookApp.controller('captainWebhookTransformerEdit', ['$routeParams', '
 
 	Transformers.getMessages($scope.transformerId, function(messages){
 		$scope.messages = messages;
-		$scope.activeMessageIndex = 0;
+		$scope.activeMessage = messages[0];
 	});
 
-	$scope.showMessage = function(messageIndex){
-		$scope.activeMessageIndex = messageIndex;
+	$scope.setActiveMessageObject = function(relId){
+		console.log($scope.transformer.ObjectTransformation);
+		$scope.activeRelId = relId;
+	}
+
+	$scope.addProperty = function(relId, key){
+		if(angular.isUndefined($scope.transformer.ObjectTransformation[relId])){
+			$scope.transformer.ObjectTransformation[relId] = {
+				Template : ''
+			};
+		}
+		$scope.transformer.ObjectTransformation[relId].Template = $scope.transformer.ObjectTransformation[relId].Template + "{{." + key + "}}"
+	}
+
+	$scope.setActiveMessage = function(message){		
+		$scope.activeMessage = message;
 	}
 }]);

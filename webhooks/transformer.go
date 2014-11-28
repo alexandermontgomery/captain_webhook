@@ -6,10 +6,16 @@ import (
 )
 
 type Transformer struct {
-	Id           bson.ObjectId `bson:"_id,omitempty" json:"_id,omitempty"`
-	Name         string        `bson:"name" json:"name,omitempty"`
-	ObjectId     bson.ObjectId `bson:"object_id" json:"object_id,omitempty"`
-	ObjectFormat *ObjectFormat `bson:",omitempty" json:"object,omitempty"`
+	Id                   bson.ObjectId                    `bson:"_id,omitempty" json:"Id,omitempty"`
+	Name                 string                           `bson:"Name" json:"Name,omitempty"`
+	ObjectTransformation map[string]*ObjectTransformation `bson:"ObjectTransformation" json:"ObjectTransformation"`
+	WrapTemplate         string                           `bson:"WrapTemplate" json:"WrapTemplate"`
+}
+
+type ObjectTransformation struct {
+	Rel_id   string `bson:"Rel_id" json:"rel_id"`
+	Template string `bson:"Template" json:"template"`
+	Weight   int    `bson:"Weight" json:"Weight"`
 }
 
 func LoadTransformer(ctx *Context, transformerId string) (*Transformer, error) {
@@ -20,7 +26,10 @@ func LoadTransformer(ctx *Context, transformerId string) (*Transformer, error) {
 		log.Printf("%+v", err)
 		return nil, err
 	}
-	transformer.ObjectFormat = GetObjectFormat(ctx, transformer.ObjectId.Hex())
+
+	if transformer.ObjectTransformation == nil {
+		transformer.ObjectTransformation = make(map[string]*ObjectTransformation)
+	}
 
 	return transformer, nil
 }
@@ -29,26 +38,12 @@ func ListTransformers(ctx *Context, limit int) []Transformer {
 	c := ctx.DB.C("transformer")
 	var transformer Transformer
 	var transformerList []Transformer
-	var objectList []bson.ObjectId
 	iter := c.Find(nil).Limit(limit).Iter()
 	for iter.Next(&transformer) {
-		objectList = append(objectList, transformer.ObjectId)
+		if transformer.ObjectTransformation == nil {
+			transformer.ObjectTransformation = make(map[string]*ObjectTransformation)
+		}
 		transformerList = append(transformerList, transformer)
-	}
-
-	c = ctx.DB.C("object_format")
-	iter = c.Find(bson.M{"_id": bson.M{"$in": objectList}}).Iter()
-	var objectFormat ObjectFormat
-	objectMap := make(map[bson.ObjectId]ObjectFormat)
-	for iter.Next(&objectFormat) {
-		objectMap[objectFormat.Id] = objectFormat
-	}
-
-	log.Printf("%+v", objectMap)
-
-	for index, transformer := range transformerList {
-		tmpObjectFormat := objectMap[transformer.ObjectId]
-		transformerList[index].ObjectFormat = &tmpObjectFormat
 	}
 
 	if err := iter.Close(); err != nil {

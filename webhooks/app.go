@@ -138,6 +138,7 @@ func transformersMessagesHandle(w http.ResponseWriter, req *http.Request, ctx *C
 	if err != nil {
 		return
 	}
+
 	out, err := json.Marshal(messagesLog)
 	if err != nil {
 		return
@@ -147,20 +148,15 @@ func transformersMessagesHandle(w http.ResponseWriter, req *http.Request, ctx *C
 }
 
 func webhookHandle(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
-	// params := req.URL.Query()
-	// id := params.Get(":id")
 	vars := mux.Vars(req)
 	id := vars["id"]
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(req.Body)
 
-	transformer, err := LoadTransformer(ctx, id)
-	if err != nil {
-		return
-	}
-	obj := transformer.ObjectFormat
-	LogMessage(ctx, buf.Bytes(), id)
-	msg := NewMessage(buf.Bytes(), obj)
-	go Publish(msg)
+	msg := ReceiveMessage(buf.Bytes(), id)
+	msg.LogMessage(ctx)
+	out, err := json.Marshal(msg)
+	writeJson(w, out, 200)
+	//go Publish(msg)
 	return
 }
