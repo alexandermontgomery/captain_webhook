@@ -1,6 +1,7 @@
 package main
 
 import (
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"log"
 )
@@ -13,8 +14,8 @@ type Transformer struct {
 }
 
 type ObjectTransformation struct {
-	Rel_id   string `bson:"Rel_id" json:"rel_id"`
-	Template string `bson:"Template" json:"template"`
+	Rel_id   string `bson:"Rel_id" json:"Rel_id"`
+	Template string `bson:"Template" json:"Template"`
 	Weight   int    `bson:"Weight" json:"Weight"`
 }
 
@@ -32,6 +33,18 @@ func LoadTransformer(ctx *Context, transformerId string) (*Transformer, error) {
 	}
 
 	return transformer, nil
+}
+
+func SaveTransformer(ctx *Context, trans *Transformer) (*mgo.ChangeInfo, error) {
+	c := ctx.DB.C("transformer")
+
+	var err error
+	change, err := c.UpsertId(trans.Id, trans)
+
+	if err != nil {
+		log.Printf("Problems saving transformer: %+v", err)
+	}
+	return change, err
 }
 
 func ListTransformers(ctx *Context, limit int) []Transformer {

@@ -39,6 +39,7 @@ func main() {
 	router.Handle("/webhook/{id}", MiddlewareHandler(webhookHandle)).Methods("POST")
 	router.Handle("/transformers", MiddlewareHandler(transformersListHandle)).Methods("GET")
 	router.Handle("/transformers/{id}", MiddlewareHandler(transformersSingleHandle)).Methods("GET")
+	router.Handle("/transformers/{id}", MiddlewareHandler(transformersSaveHandle)).Methods("PUT")
 	router.Handle("/transformers/{id}/messages", MiddlewareHandler(transformersMessagesHandle)).Methods("GET")
 	router.Handle("/templates/{name}", http.HandlerFunc(templateServerHandle)).Methods("GET")
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir(homeDir+"/static/")))).Methods("GET")
@@ -144,6 +145,24 @@ func transformersMessagesHandle(w http.ResponseWriter, req *http.Request, ctx *C
 		return
 	}
 	writeJson(w, out, 200)
+	return
+}
+
+func transformersSaveHandle(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(req.Body)
+
+	var trans Transformer
+
+	err = json.Unmarshal(buf.Bytes(), &trans)
+
+	if err != nil {
+		log.Printf("Could not unmarshal Json on transformer save: %+v", err)
+		return
+	}
+
+	_, err = SaveTransformer(ctx, &trans)
+
 	return
 }
 

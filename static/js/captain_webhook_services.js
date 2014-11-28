@@ -22,5 +22,11 @@ captainWebhookApp.service('Transformers', ["$http", "$rootScope", function($http
 		});
 	}
 
+	Transformers.saveTransformer = function(transformer){
+		$http.put('/api/transformers/' + transformer.Id, transformer).success(function(response){
+			
+		})
+	}
+
 	return Transformers;
 }]);

@@ -1,4 +1,4 @@
-var captainWebhookApp = angular.module('captainWebhookApp', ['ui.bootstrap', 'ngRoute', 'ui.sortable'])
+var captainWebhookApp = angular.module('captainWebhookApp', ['ui.bootstrap', 'ngRoute'])
 	.config(['$routeProvider', '$locationProvider', 
 		function($routeProvider, $locationProvider){
 			$routeProvider
@@ -42,18 +42,22 @@ captainWebhookApp.controller('captainWebhookTransformerEdit', ['$routeParams', '
 		$scope.activeMessage = messages[0];
 	});
 
+	$scope.saveTransformer = function(){
+		Transformers.saveTransformer($scope.transformer);
+	}
+
 	$scope.setActiveMessageObject = function(relId){
-		console.log($scope.transformer.ObjectTransformation);
 		$scope.activeRelId = relId;
+		if(angular.isUndefined($scope.transformer.ObjectTransformation[relId])){
+			$scope.transformer.ObjectTransformation[relId] = {
+				Template : '',
+				Rel_id : relId
+			};
+		}
 	}
 
 	$scope.addProperty = function(relId, key){
-		if(angular.isUndefined($scope.transformer.ObjectTransformation[relId])){
-			$scope.transformer.ObjectTransformation[relId] = {
-				Template : ''
-			};
-		}
-		$scope.transformer.ObjectTransformation[relId].Template = $scope.transformer.ObjectTransformation[relId].Template + "{{." + key + "}}"
+		$scope.transformer.ObjectTransformation[relId].Template = $scope.transformer.ObjectTransformation[relId].Template + " {{." + key + "}}"
 	}
 
 	$scope.setActiveMessage = function(message){		
