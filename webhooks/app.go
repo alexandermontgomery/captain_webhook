@@ -41,6 +41,7 @@ func main() {
 	router.Handle("/transformers/{id}", MiddlewareHandler(transformersSingleHandle)).Methods("GET")
 	router.Handle("/transformers/{id}", MiddlewareHandler(transformersSaveHandle)).Methods("PUT")
 	router.Handle("/transformers/{id}/messages", MiddlewareHandler(transformersMessagesHandle)).Methods("GET")
+	router.Handle("/transform_message/{message_id}", MiddlewareHandler(transformMessageHandle)).Methods("POST")
 	router.Handle("/templates/{name}", http.HandlerFunc(templateServerHandle)).Methods("GET")
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir(homeDir+"/static/")))).Methods("GET")
 
@@ -148,6 +149,34 @@ func transformersMessagesHandle(w http.ResponseWriter, req *http.Request, ctx *C
 	return
 }
 
+func transformMessageHandle(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(req.Body)
+	vars := mux.Vars(req)
+	messageId := vars["message_id"]
+
+	message, err := LoadMessage(ctx, messageId)
+	if err != nil {
+		log.Printf("Error loading message: %+v", err)
+		return
+	}
+
+	var trans Transformer
+	err = json.Unmarshal(buf.Bytes(), &trans)
+	trans.SortObjectTransformations()
+	transformation, err := message.Transform(&trans)
+
+	if err != nil {
+		log.Printf("Error transforming message: %+v", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(200)
+	w.Write(transformation)
+	return
+}
+
 func transformersSaveHandle(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(req.Body)
@@ -172,10 +201,8 @@ func webhookHandle(w http.ResponseWriter, req *http.Request, ctx *Context) (err 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(req.Body)
 
-	msg := ReceiveMessage(buf.Bytes(), id)
-	msg.LogMessage(ctx)
-	out, err := json.Marshal(msg)
-	writeJson(w, out, 200)
-	//go Publish(msg)
+	msg := ReceiveMessage(ctx, buf.Bytes(), id)
+	trans, _ := LoadTransformer(ctx, id)
+	go trans.PublishMessage(msg)
 	return
 }

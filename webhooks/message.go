@@ -9,13 +9,14 @@ import (
 	"time"
 )
 
-func ReceiveMessage(data []byte, transformer_id string) *Message {
+func ReceiveMessage(ctx *Context, data []byte, transformer_id string) *Message {
 	msg := new(Message)
 	msg.Body = data
-	msg.ParseAndFlatten()
 	msg.Id = bson.NewObjectId()
 	msg.TransformerId = bson.ObjectIdHex(transformer_id)
 	msg.Time = time.Now()
+	msg.LogMessage(ctx)
+	msg.ParseAndFlatten()
 	return msg
 }
 
@@ -35,7 +36,6 @@ func FlattenMessage(json map[string]interface{}, flat map[string]*MessageObject,
 	}
 
 	data := make(map[string]interface{})
-	is_arr := false
 	for k, v := range json {
 		switch v.(type) {
 		case string:
@@ -46,19 +46,30 @@ func FlattenMessage(json map[string]interface{}, flat map[string]*MessageObject,
 			data[k] = nil
 		case bool:
 			data[k] = v
-		case []interface{}:
-			is_arr = true
+		case []interface{}: // If this is an array determine if it is an array of primitives or objects that we should flatten
+			arr, _ := v.([]interface{})
+			for _, w := range arr {
+				switch w.(type) {
+				case map[string]interface{}:
+					part, _ := w.(map[string]interface{})
+					FlattenMessage(part, flat, rel_id+divider+k)
+				}
+			}
 		case map[string]interface{}:
 			obj, _ := v.(map[string]interface{})
 			FlattenMessage(obj, flat, rel_id+divider+k)
 		}
 	}
 
-	msgObj := new(MessageObject)
-	msgObj.Data = data
-	msgObj.Rel_id = rel_id
-	msgObj.Is_array = is_arr
-	flat[rel_id] = msgObj
+	if flat[rel_id] == nil {
+		msgObj := new(MessageObject)
+		msgObj.Data = data
+		msgObj.Rel_id = rel_id
+		flat[rel_id] = msgObj
+	} else {
+		flat[rel_id].Array_data = append(flat[rel_id].Array_data, data)
+	}
+
 	return
 }
 
@@ -85,24 +96,9 @@ type Message struct {
 }
 
 type MessageObject struct {
-	Data     map[string]interface{}
-	Rel_id   string
-	Is_array bool
-}
-
-func (msg *Message) Translate() {
-	var translatedStr bytes.Buffer
-	t, err := template.New("").Parse("msg.obj.getMessage()")
-	if err != nil {
-		log.Printf("Error translating message: %s", err)
-	}
-
-	execErr := t.Execute(&translatedStr, nil)
-	if execErr != nil {
-		log.Printf("Error translating message: %s", err)
-	}
-	msg.translatedStr = string(translatedStr.Bytes())
-	return
+	Data       map[string]interface{}
+	Array_data []map[string]interface{}
+	Rel_id     string
 }
 
 func (msg *Message) LogMessage(ctx *Context) {
@@ -111,6 +107,60 @@ func (msg *Message) LogMessage(ctx *Context) {
 	if err != nil {
 		log.Printf("Problem inserting log Message: %+v", err)
 	}
+}
+
+func (msg *Message) Transform(trans *Transformer) ([]byte, error) {
+	var transformation []byte
+	var err error
+	for _, v := range trans.ObjectTransformation {
+		if msg.Flat[v.Rel_id] == nil {
+			continue
+		}
+
+		t, err := template.New("").Parse(v.Template)
+		if err != nil {
+			log.Printf("Error transforming object: %+v", err)
+			return transformation, err
+		}
+
+		var transBuf bytes.Buffer
+		err = t.Execute(&transBuf, msg.Flat[v.Rel_id].Data)
+		if err != nil {
+			log.Printf("Error transforming object during template execution: %+v", err)
+			return transformation, err
+		}
+
+		if len(msg.Flat[v.Rel_id].Array_data) > 0 {
+			transBuf.Write([]byte("\\n"))
+			for _, vv := range msg.Flat[v.Rel_id].Array_data {
+				err = t.Execute(&transBuf, vv)
+				if err != nil {
+					log.Printf("Error transforming object during template execution: %+v", err)
+					return transformation, err
+				}
+				transBuf.Write([]byte("\\n"))
+			}
+		}
+
+		bytesArr := transBuf.Bytes()
+
+		if len(transformation) > 0 {
+			bytesArr = append([]byte(" "), bytesArr...)
+		}
+		transformation = append(transformation, bytesArr...)
+	}
+
+	tplPrefix := []byte(trans.TemplatePrefix)
+	tplSuffix := []byte(trans.TemplateSuffix)
+	if len(tplPrefix) > 0 {
+		transformation = append(tplPrefix, transformation...)
+	}
+
+	if len(tplSuffix) > 0 {
+		transformation = append(transformation, tplSuffix...)
+	}
+
+	return transformation, err
 }
 
 func LoadMessageLog(ctx *Context, transformerId string, limit int) ([]Message, error) {
@@ -132,4 +182,16 @@ func LoadMessageLog(ctx *Context, transformerId string, limit int) ([]Message, e
 	}
 
 	return messageList, err
+}
+
+func LoadMessage(ctx *Context, messageId string) (*Message, error) {
+	c := ctx.DB.C("messages")
+	var message *Message
+	err := c.FindId(bson.ObjectIdHex(messageId)).One(&message)
+	if err != nil {
+		log.Printf("%+v", err)
+		return nil, err
+	}
+	message.ParseAndFlatten()
+	return message, err
 }

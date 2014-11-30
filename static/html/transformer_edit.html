@@ -1,10 +1,22 @@
 <h2>{{transformer.name}}</h2>
 <div class="col-lg-12 col-md-12 col-sm-12">
-	<div class="col-xs-12 panel">
-		<div class="col-xs-11 panel">
-			Translation area
+	<div class="panel panel-primary">
+		<div class="panel-heading">Transformation</div>
+		<div class="panel-body">
+			<label for="destination-url">Destination URL</label>
+			<input id="destination-url" class="form-control" ng-model="transformer.DestinationUrl"/>
+			<label for="transformation-prefix">Prefix</label>
+			<textarea id="transformation-prefix" class="form-control" ng-model="transformer.TemplatePrefix"></textarea>
+			<label for="transformation-suffix">Suffix</label>
+			<textarea id="transformation-suffix" class="form-control" ng-model="transformer.TemplateSuffix"></textarea>
+			<ul sortable-object-transformations class="col-xs-12 transformation-reorder-list">
+				<li class="btn btn-primary sortable-btn" id="{{item.Rel_id}}" ng-repeat="item in transformer.ObjectTransformation" data-drag="true" data-jqyoui-options ng-model="transformer.ObjectTransformation">{{item.Rel_id}}</div>
+			</ul>
+			<div class="transfomration-display col-xs-12 panel">
+				{{transformationText}}
+			</div>		
+			<button type="button" class="btn btn-primary save-transformer" ng-click="saveTransformer()">Save</button>
 		</div>
-		<button type="button" class="col-xs-1 btn btn-primary" ng-click="saveTransformer()">Save</button>
 	</div>	
 	<div class="col-xs-2">
 		<div class="message-list list-group">
@@ -13,12 +25,12 @@
 	</div>
 	<div class="col-xs-10">
 		<div class="message-objects list-group col-xs-6">
-			<a ng-repeat="(rel_id, object) in activeMessage.Flat" class="list-group-item col-xs-12 {{activeRelId == rel_id ? 'active' : 'inactive'}}" ng-click="setActiveMessageObject(rel_id)">
-				<p class="message-object-id">{{rel_id}}</p>
+			<a ng-repeat="(i, object) in activeMessage.Flat" class="list-group-item col-xs-12 {{activeRelId == object.Rel_id ? 'active' : 'inactive'}}" ng-click="setActiveMessageObject(object.Rel_id)">
+				<p class="message-object-id">{{object.Rel_id}}</p>
 				<div class="col-xs-12">
 					<div class="form-group">
-						<label for="transformation-{{rel_id}}">Transformation</label>
-						<textarea id="transformation-{{rel_id}}" class="form-control" ng-model="transformer.ObjectTransformation[rel_id].Template"></textarea>
+						<label for="transformation-{{object.Rel_id}}">Transformation</label>
+						<textarea id="transformation-{{object.Rel_id}}" class="form-control" ng-model="transformer.ObjectTransformation[indexOfOjbectTransformation(object.Rel_id)].Template"></textarea>
 					</div>
 				</div>
 			</a>

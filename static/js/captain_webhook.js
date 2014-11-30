@@ -1,4 +1,4 @@
-var captainWebhookApp = angular.module('captainWebhookApp', ['ui.bootstrap', 'ngRoute'])
+var captainWebhookApp = angular.module('captainWebhookApp', ['ui.bootstrap', 'ngRoute', 'ngDragDrop'])
 	.config(['$routeProvider', '$locationProvider', 
 		function($routeProvider, $locationProvider){
 			$routeProvider
@@ -24,43 +24,100 @@ captainWebhookApp.controller('captainWebhook', ['$scope', 'Transformers', '$rout
 	}
 }]);
 
-captainWebhookApp.controller('captainWebhookTransformerEdit', ['$routeParams', '$scope', 'Transformers', function($routeParams, $scope, Transformers){
+captainWebhookApp.directive('sortableObjectTransformations', [function(){
+	return {
+		link : function(scope, element, attrs){
+			$(element).sortable(
+				{
+					placeholder: "sortable-btn placeholder-btn btn",
+					forcePlaceholderSize : true
+				}
+			);
+			$(element).on( "sortstop", function( ev, ui ) {
+				var arr = $(element).sortable( "toArray" );
+				scope.updateObjectTransformationWeights(arr);				
+			});
+		}
+	}
+}])
+
+captainWebhookApp.controller('captainWebhookTransformerEdit', ['$routeParams', '$scope', 'Transformers', '$timeout', function($routeParams, $scope, Transformers, $timeout){
 	$scope.transformer;
 	$scope.messages;	
 	$scope.transformerId = $routeParams.id;
 	$scope.activeMessage;
 	$scope.activeRelId;
 	$scope.sortableRelIdList;
+	$scope.recalculating = false;
+	$scope.transformationText;
 
 	Transformers.getOne($scope.transformerId, function(transformer){
 		$scope.transformer = transformer;
 		Transformers.activeTransformer = transformer;
-	});
 
-	Transformers.getMessages($scope.transformerId, function(messages){
-		$scope.messages = messages;
-		$scope.activeMessage = messages[0];
+		Transformers.getMessages($scope.transformerId, function(messages){
+			$scope.messages = messages;
+			$scope.activeMessage = messages[0];
+			if(angular.isUndefined($scope.activeMessage)){
+				return;
+			}
+			$scope.recalculateTransformation($scope.activeMessage.Id);
+		});
 	});
 
 	$scope.saveTransformer = function(){
 		Transformers.saveTransformer($scope.transformer);
+		$scope.recalculateTransformation($scope.activeMessage.Id);
+	}
+	// Takes an array of Id's and updates the weight of the ObjectTransformation objects
+	$scope.updateObjectTransformationWeights = function(idArr){
+		for(var i = 0; i < idArr.length; i++){
+			var j = $scope.indexOfOjbectTransformation(idArr[i]);
+			$scope.transformer.ObjectTransformation[j].Weight = i;			
+		}
+		$scope.recalculateTransformation($scope.activeMessage.Id);
+	}
+
+	$scope.indexOfOjbectTransformation = function(relId){
+		for(i =0; i < $scope.transformer.ObjectTransformation.length; i++){
+			if($scope.transformer.ObjectTransformation[i].Rel_id == relId){
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	$scope.setActiveMessageObject = function(relId){
 		$scope.activeRelId = relId;
-		if(angular.isUndefined($scope.transformer.ObjectTransformation[relId])){
-			$scope.transformer.ObjectTransformation[relId] = {
+		$scope.recalculateTransformation($scope.activeMessage.Id);
+		var indexOfOT = $scope.indexOfOjbectTransformation(relId);
+		if(indexOfOT == -1){
+			$scope.transformer.ObjectTransformation.push({
 				Template : '',
-				Rel_id : relId
-			};
+				Rel_id : relId,
+				Weight : $scope.transformer.ObjectTransformation.length
+			});
 		}
 	}
 
+	$scope.recalculateTransformation = function(messageId){
+		if($scope.recalculating){
+			return;
+		}
+		$scope.recalculating = true;
+		Transformers.translateMessage(messageId, $scope.transformer, function(translation){
+			$scope.recalculating = false;
+			$scope.transformationText = translation;
+		});
+	}
+
 	$scope.addProperty = function(relId, key){
-		$scope.transformer.ObjectTransformation[relId].Template = $scope.transformer.ObjectTransformation[relId].Template + " {{." + key + "}}"
+		var indexOfOT = $scope.indexOfOjbectTransformation(relId);
+		$scope.transformer.ObjectTransformation[indexOfOT].Template = $scope.transformer.ObjectTransformation[indexOfOT].Template + " {{." + key + "}}"
 	}
 
 	$scope.setActiveMessage = function(message){		
 		$scope.activeMessage = message;
+		$scope.recalculateTransformation($scope.activeMessage.Id);
 	}
 }]);

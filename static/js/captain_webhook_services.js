@@ -22,9 +22,22 @@ captainWebhookApp.service('Transformers', ["$http", "$rootScope", function($http
 		});
 	}
 
-	Transformers.saveTransformer = function(transformer){
+	Transformers.saveTransformer = function(transformer, callback){
 		$http.put('/api/transformers/' + transformer.Id, transformer).success(function(response){
-			
+			if(angular.isDefined(callback)){
+				callback(response);
+			}
+		});
+	}
+
+	Transformers.translateMessage = function(messageId, transformer, callback){
+		$http.post('/api/transform_message/' + messageId, transformer, {
+			// Angular getting too smart for its own good
+			transformResponse : function(data, headers){
+				return data;
+			}
+		}).success(function(response){
+			callback(response);
 		})
 	}
 
