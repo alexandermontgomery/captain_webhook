@@ -38,8 +38,10 @@ func main() {
 	router.Handle("/", MiddlewareHandler(indexHandle)).Methods("GET")
 	router.Handle("/webhook/{id}", MiddlewareHandler(webhookHandle)).Methods("POST")
 	router.Handle("/transformers", MiddlewareHandler(transformersListHandle)).Methods("GET")
+	router.Handle("/transformers", MiddlewareHandler(transformersCreateHandle)).Methods("POST")
 	router.Handle("/transformers/{id}", MiddlewareHandler(transformersSingleHandle)).Methods("GET")
 	router.Handle("/transformers/{id}", MiddlewareHandler(transformersSaveHandle)).Methods("PUT")
+	router.Handle("/transformers/{id}", MiddlewareHandler(transformersDeleteHandle)).Methods("DELETE")
 	router.Handle("/transformers/{id}/messages", MiddlewareHandler(transformersMessagesHandle)).Methods("GET")
 	router.Handle("/transform_message/{message_id}", MiddlewareHandler(transformMessageHandle)).Methods("POST")
 	router.Handle("/templates/{name}", http.HandlerFunc(templateServerHandle)).Methods("GET")
@@ -192,6 +194,43 @@ func transformersSaveHandle(w http.ResponseWriter, req *http.Request, ctx *Conte
 
 	_, err = SaveTransformer(ctx, &trans)
 
+	out, err := json.Marshal(trans)
+	if err != nil {
+		return
+	}
+	writeJson(w, out, 200)
+
+	return
+}
+
+func transformersDeleteHandle(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	vars := mux.Vars(req)
+	id := vars["id"]
+	DeleteTransformer(ctx, id)
+	return
+}
+
+func transformersCreateHandle(w http.ResponseWriter, req *http.Request, ctx *Context) (err error) {
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(req.Body)
+
+	var trans Transformer
+
+	err = json.Unmarshal(buf.Bytes(), &trans)
+
+	if err != nil {
+		log.Printf("Could not unmarshal Json on transformer create: %+v", err)
+		return
+	}
+
+	_, err = SaveTransformer(ctx, &trans)
+
+	out, err := json.Marshal(trans)
+	if err != nil {
+		return
+	}
+	writeJson(w, out, 200)
+
 	return
 }
 
@@ -203,6 +242,8 @@ func webhookHandle(w http.ResponseWriter, req *http.Request, ctx *Context) (err 
 
 	msg := ReceiveMessage(ctx, buf.Bytes(), id)
 	trans, _ := LoadTransformer(ctx, id)
-	go trans.PublishMessage(msg)
+	if trans.Active {
+		go trans.PublishMessage(msg)
+	}
 	return
 }

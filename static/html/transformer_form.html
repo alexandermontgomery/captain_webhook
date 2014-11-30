@@ -1,0 +1,36 @@
+<div class="panel panel-success">
+	<div class="panel-heading">Tranformer Address</div>
+	<div class="panel-body">
+		Use this address to send information into this transformer:
+		<pre>{{transformerAddress}}</pre>
+	</div>
+</div>
+<div class="panel panel-primary">
+	<div class="panel-heading">Transformation</div>
+	<div class="panel-body">
+		<label for="transformer-name">Name</label>
+		<input id="transformer-name" class="form-control" ng-model="transformer.Name"/>
+		<label for="destination-url">Destination URL</label>
+		<input id="destination-url" class="form-control" ng-model="transformer.Destination.Url"/>
+		<label for="destination-content-type">Destination Content-Type</label>
+		<select id="destination-content-type" class="form-control" ng-options="(key | num) as value.name for (key , value) in [{name : 'JSON'},{name : 'Form-Data'}]" ng-model="transformer.Destination.ContentType"></select>
+		<div ng-if="transformer.Destination.ContentType == 1">
+			<label for="destination-form-field-name">Destination Form Field Name</label>
+			<input id="destination-form-field-name" class="form-control" ng-model="transformer.Destination.FormField"/>
+		</div>
+		<label for="transformation-prefix">Prefix</label>
+		<textarea id="transformation-prefix" class="form-control" ng-model="transformer.TemplatePrefix"></textarea>
+		<label for="transformation-suffix">Suffix</label>
+		<textarea id="transformation-suffix" class="form-control" ng-model="transformer.TemplateSuffix"></textarea>
+		<ul sortable-object-transformations class="col-xs-12 transformation-reorder-list">
+			<li class="btn btn-primary sortable-btn" id="{{item.Rel_id}}" ng-repeat="item in transformer.ObjectTransformation" ng-if="item.Template.length > 0">{{item.Rel_id}}</div>
+		</ul>
+		<div class="transfomration-display col-xs-12 panel">
+			<pre>{{transformationText}}</pre>
+		</div>
+		<div class="transformer-on-off-toggle col-xs-12">
+			<input bs-switch switch-inverse="true" ng-model="transformer.Active" type="checkbox" switch-on-color="success" switch-off-color="danger"/>
+		</div>
+		<button type="button" class="btn btn-primary save-transformer" ng-click="saveTransformer()">Save</button>
+	</div>
+</div>	

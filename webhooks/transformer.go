@@ -11,6 +11,9 @@ import (
 	"sort"
 )
 
+const DESTINATION_CONTENT_TYPE_JSON int = 0
+const DESTINATION_CONTENT_TYPE_FORM_DATA int = 1
+
 type ByWeight []*ObjectTransformation
 
 func (a ByWeight) Len() int {
@@ -29,7 +32,14 @@ type Transformer struct {
 	ObjectTransformation []*ObjectTransformation `bson:"ObjectTransformation" json:"ObjectTransformation"`
 	TemplatePrefix       string                  `bson:"TemplatePrefix" json:"TemplatePrefix"`
 	TemplateSuffix       string                  `bson:"TemplateSuffix" json:"TemplateSuffix"`
-	DestinationUrl       string                  `bson:"DestinationUrl" json:"DestinationUrl"`
+	Destination          TransformerDestination  `bson:"Destination" json:"Destination"`
+	Active               bool                    `bson:"Active" json:"Active"`
+}
+
+type TransformerDestination struct {
+	Url         string `bson:"Url" json:"Url"`
+	ContentType int    `bson:"ContentType" json:"ContentType"`
+	FormField   string `bson:"FormField" json:"FormField"`
 }
 
 type ObjectTransformation struct {
@@ -60,12 +70,25 @@ func (trans *Transformer) SortObjectTransformations() {
 
 func (trans *Transformer) PublishMessage(msg *Message) {
 	transStr, _ := msg.Transform(trans)
-	log.Printf("%+v", string(transStr))
-	data := url.Values{}
-	data.Set("payload", string(transStr))
 
-	req, err := http.NewRequest("POST", trans.DestinationUrl, bytes.NewBufferString(data.Encode()))
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	var reqData *bytes.Buffer
+	var contentType string
+	switch trans.Destination.ContentType {
+	case DESTINATION_CONTENT_TYPE_JSON:
+		reqData = bytes.NewBufferString(string(transStr))
+		contentType = "application/json"
+	case DESTINATION_CONTENT_TYPE_FORM_DATA:
+		data := url.Values{}
+		data.Set(trans.Destination.FormField, string(transStr))
+		reqData = bytes.NewBufferString(data.Encode())
+		contentType = "application/x-www-form-urlencoded"
+	default:
+		log.Printf("No Content-Type selected, request could not be made")
+		return
+	}
+
+	req, err := http.NewRequest("POST", trans.Destination.Url, reqData)
+	req.Header.Add("Content-Type", contentType)
 	client := &http.Client{}
 
 	resp, err := client.Do(req)
@@ -86,12 +109,26 @@ func SaveTransformer(ctx *Context, trans *Transformer) (*mgo.ChangeInfo, error) 
 	c := ctx.DB.C("transformer")
 
 	var err error
+
+	if !trans.Id.Valid() {
+		trans.Id = bson.NewObjectId()
+	}
 	change, err := c.UpsertId(trans.Id, trans)
 
 	if err != nil {
 		log.Printf("Problems saving transformer: %+v", err)
 	}
 	return change, err
+}
+
+func DeleteTransformer(ctx *Context, transformerId string) {
+	c := ctx.DB.C("transformer")
+	err := c.RemoveId(bson.ObjectIdHex(transformerId))
+
+	if err != nil {
+		log.Printf("Problems saving transformer: %+v", err)
+	}
+	return
 }
 
 func ListTransformers(ctx *Context, limit int) []Transformer {

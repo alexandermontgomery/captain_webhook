@@ -1,13 +1,23 @@
-var captainWebhookApp = angular.module('captainWebhookApp', ['ui.bootstrap', 'ngRoute', 'ngDragDrop'])
+var captainWebhookApp = angular.module('captainWebhookApp', ['ui.bootstrap', 'ngRoute', 'ngDragDrop', 'frapontillo.bootstrap-switch'])
 	.config(['$routeProvider', '$locationProvider', 
 		function($routeProvider, $locationProvider){
 			$routeProvider
 				.when('/transformer/:id', {
-		          templateUrl: '/html/transformer_edit.html',
+		          templateUrl: '/html/transformer_config.html',
 		          controller: 'captainWebhookTransformerEdit',
+		        })
+		        .when('/', {
+		          templateUrl: '/html/transformer_home.html',
+		          controller: 'captainWebhookTransformerHome',
 		        });
 		    $locationProvider.html5Mode(true);
 		}]);
+
+captainWebhookApp.filter('num', function() {
+    return function(input) {
+      return parseInt(input);
+    }
+});
 
 captainWebhookApp.controller('captainWebhook', ['$scope', 'Transformers', '$route', '$routeParams', '$location', function($scope, Transformers, $route, $routeParams, $location){
 	$scope.transformers = Transformers;
@@ -39,9 +49,29 @@ captainWebhookApp.directive('sortableObjectTransformations', [function(){
 			});
 		}
 	}
-}])
+}]);
 
-captainWebhookApp.controller('captainWebhookTransformerEdit', ['$routeParams', '$scope', 'Transformers', '$timeout', function($routeParams, $scope, Transformers, $timeout){
+captainWebhookApp.controller('captainWebhookTransformerHome', ['$scope', 'Transformers', '$location', function($scope, Transformers, $location){
+	Transformers.get();
+	$scope.transformers = Transformers;
+	$scope.newTransformerName = '';
+
+	$scope.addTransformer = function(){
+		var newTrans = {Name : $scope.newTransformerName};
+		Transformers.createTransformer(newTrans, function(resp){
+			$location.url('/transformer/' + resp.Id);
+		});
+	}
+
+	$scope.deleteTransformer = function(transId){
+		$scope.transformers.deleteTransformer(transId);
+		if(!$scope.$$phase){
+			$scope.$apply();
+		}
+	}
+}]);
+
+captainWebhookApp.controller('captainWebhookTransformerEdit', ['$routeParams', '$scope', 'Transformers', '$location', function($routeParams, $scope, Transformers, $location){
 	$scope.transformer;
 	$scope.messages;	
 	$scope.transformerId = $routeParams.id;
@@ -50,6 +80,7 @@ captainWebhookApp.controller('captainWebhookTransformerEdit', ['$routeParams', '
 	$scope.sortableRelIdList;
 	$scope.recalculating = false;
 	$scope.transformationText;
+	$scope.transformerAddress = $location.protocol() + '://' + $location.host() + ':' + $location.port() + '/receive/' + $scope.transformerId;
 
 	Transformers.getOne($scope.transformerId, function(transformer){
 		$scope.transformer = transformer;

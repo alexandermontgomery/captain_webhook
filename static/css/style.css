@@ -40,3 +40,44 @@ body{
 .transformation-reorder-list{
 	padding-top:15px;
 }
+
+.transformer-on-off-toggle{
+	height:50px;
+	text-align:center;
+	margin-bottom:15px;
+}
+
+.add-transformer{
+	position:absolute;
+	bottom:0;
+}
+
+.transformer-go-edit-item .glyphicon{
+	float:right;
+}
+
+.active-indicator{
+	width:15px;
+	height:15px;
+	float:left;
+	display:block;
+	border-radius: 15px;
+	margin:2px 2px;
+}
+.active-indicator.green{
+	background-color:green;
+}
+.active-indicator.red{
+	background-color:red;
+}
+
+.delete-transformer{
+	font-size:20px;
+	font-weight:bold;
+	padding:2px 2px;
+	color:#e1e1e1;
+	cursor: pointer;
+}
+.delete-transformer:hover{
+	color:black;
+}

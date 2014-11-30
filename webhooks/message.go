@@ -131,14 +131,13 @@ func (msg *Message) Transform(trans *Transformer) ([]byte, error) {
 		}
 
 		if len(msg.Flat[v.Rel_id].Array_data) > 0 {
-			transBuf.Write([]byte("\\n"))
 			for _, vv := range msg.Flat[v.Rel_id].Array_data {
+				transBuf.Write([]byte(", "))
 				err = t.Execute(&transBuf, vv)
 				if err != nil {
 					log.Printf("Error transforming object during template execution: %+v", err)
 					return transformation, err
 				}
-				transBuf.Write([]byte("\\n"))
 			}
 		}
 

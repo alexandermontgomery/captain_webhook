@@ -23,11 +23,27 @@ captainWebhookApp.service('Transformers', ["$http", "$rootScope", function($http
 	}
 
 	Transformers.saveTransformer = function(transformer, callback){
+		transformer.Active = transformer.Active == 1;
 		$http.put('/api/transformers/' + transformer.Id, transformer).success(function(response){
 			if(angular.isDefined(callback)){
 				callback(response);
 			}
 		});
+	}
+
+	Transformers.createTransformer = function(transformer, callback){
+		$http.post('/api/transformers', transformer).success(function(response){
+			callback(response);
+		})
+	}
+
+	Transformers.deleteTransformer = function(transformerId){
+		$http.delete('/api/transformers/' + transformerId);
+		for(var i = 0;i < this.transformers.length; i++){
+			if(this.transformers[i].Id == transformerId){
+				this.transformers.splice(i,1);
+			}
+		}
 	}
 
 	Transformers.translateMessage = function(messageId, transformer, callback){

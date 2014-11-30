@@ -1,23 +1,6 @@
 <h2>{{transformer.name}}</h2>
 <div class="col-lg-12 col-md-12 col-sm-12">
-	<div class="panel panel-primary">
-		<div class="panel-heading">Transformation</div>
-		<div class="panel-body">
-			<label for="destination-url">Destination URL</label>
-			<input id="destination-url" class="form-control" ng-model="transformer.DestinationUrl"/>
-			<label for="transformation-prefix">Prefix</label>
-			<textarea id="transformation-prefix" class="form-control" ng-model="transformer.TemplatePrefix"></textarea>
-			<label for="transformation-suffix">Suffix</label>
-			<textarea id="transformation-suffix" class="form-control" ng-model="transformer.TemplateSuffix"></textarea>
-			<ul sortable-object-transformations class="col-xs-12 transformation-reorder-list">
-				<li class="btn btn-primary sortable-btn" id="{{item.Rel_id}}" ng-repeat="item in transformer.ObjectTransformation" data-drag="true" data-jqyoui-options ng-model="transformer.ObjectTransformation">{{item.Rel_id}}</div>
-			</ul>
-			<div class="transfomration-display col-xs-12 panel">
-				{{transformationText}}
-			</div>		
-			<button type="button" class="btn btn-primary save-transformer" ng-click="saveTransformer()">Save</button>
-		</div>
-	</div>	
+	<div ng-include="'/html/transformer_form.html'"></div>
 	<div class="col-xs-2">
 		<div class="message-list list-group">
 			<a href="#" class="list-group-item {{activeMessage.Id == message.Id ? 'active' : 'inactive'}}" ng-repeat="message in messages" ng-click="setActiveMessage(message)">Message {{$index + 1}} <p class="text-muted">{{message.Time | date : 'short'}}</p></a>
